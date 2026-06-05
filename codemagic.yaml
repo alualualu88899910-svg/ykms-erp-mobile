@@ -1,0 +1,30 @@
+workflows:
+  default-workflow:
+    name: YKMS ERP Build Workflow
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      flutter: stable
+      xcode: latest
+    triggering:
+      events:
+        - push
+    scripts:
+      - name: Set up dependencies
+        script: |
+          flutter pub get
+      - name: Build Android APK
+        script: |
+          flutter build apk --release
+      - name: Build iOS App (Unsigned)
+        script: |
+          flutter build ios --release --no-codesign
+      - name: Package iOS IPA (Unsigned)
+        script: |
+          cd build/ios/iphoneos
+          mkdir Payload
+          mv Runner.app Payload/
+          zip -r Runner.ipa Payload
+    artifacts:
+      - build/app/outputs/flutter-apk/*-release.apk
+      - build/ios/iphoneos/Runner.ipa
