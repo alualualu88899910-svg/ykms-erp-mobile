@@ -14,3 +14,8 @@
 -keep class com.google.mlkit.** { *; }
 -keep class com.google.android.gms.internal.mlkit_vision_barcode_bundled.** { *; }
 -keep class com.google.android.gms.internal.mlkit_vision_barcode.** { *; }
+
+# Prevent R8 warnings for missing Play Store Split Install classes
+-dontwarn com.google.android.play.core.**
+-dontwarn io.flutter.embedding.android.FlutterPlayStoreSplitApplication
+-dontwarn io.flutter.embedding.engine.deferredcomponents.PlayStoreDeferredComponentManager
