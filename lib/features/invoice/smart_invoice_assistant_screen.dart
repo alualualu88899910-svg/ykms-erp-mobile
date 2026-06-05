@@ -61,7 +61,7 @@ Here is the JSON schema to output:
       "sku": "Part number, OEM code, barcode, or reference code if visible, otherwise null (strict rule: do not invent values, do not put product name or category here, leave null if not found)",
       "qty": 10,
       "purchase_price": 350.00,
-      "category_suggestion": "The category classification suggested for this item in English (choose from: Filters, Brakes, Oils, Suspension, Electrical, Cooling, Engine, Clutch, Belts, Steering, Body, Transmission, Exhaust)",
+      "category_suggestion": "The category classification suggested for this item in Arabic (choose exactly from: فلاتر, زيوت ومواد التشحيم, فرامل, كهرباء السيارة, محرك, تعليق وتوجيه, إطارات وعجلات, إكسسوارات)",
       "unit_suggestion": "The unit of measurement suggested (choose from: Piece, Litre, Box)",
       "packaging": {
         "is_box": false, // Set to true if the item name, description, or row indicates it is bought in bulk/box/carton (e.g., 'Carton 12', 'Box 24', 'Pack 6')
