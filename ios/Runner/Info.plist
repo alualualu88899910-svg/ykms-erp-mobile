@@ -72,5 +72,12 @@
 	<string>يحتاج التطبيق للوصول إلى مكتبة الصور لاختيار صور المنتجات وإضافتها.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>يحتاج التطبيق للوصول إلى الميكروفون للخدمات المرتبطة بالكاميرا.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>يحتاج التطبيق للوصول إلى الشبكة المحلية للاتصال بسيرفر برنامج YKMS ERP لتبادل البيانات.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
 </dict>
 </plist>
