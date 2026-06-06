@@ -146,15 +146,14 @@ class ConnectionNotifier extends Notifier<ConnectionStateData> {
         }
       });
 
-      // Wait 3 seconds to verify handshake receipt (connected status update)
-      await Future.delayed(const Duration(seconds: 3));
+      // Wait 5 seconds to verify if we got the CONNECTION_ACK
+      await Future.delayed(const Duration(seconds: 5));
       
       if (state.status == ConnectionStatus.connecting) {
-        // If we haven't switched to connected, let's treat it as success if no error was raised
-        state = state.copyWith(status: ConnectionStatus.connected, serverName: "YKMS ERP");
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_ipPrefKey, ip);
-        _startPingCycle();
+        // If still connecting, it means we didn't receive CONNECTION_ACK from the server.
+        // This is a sign of port blockage (firewall) or wrong IP.
+        _handleDisconnect("انتهت مهلة الاتصال بالخادم. يرجى التحقق من جدار حماية الكمبيوتر والشبكة.");
+        await _channel?.sink.close();
       }
 
       return state.status == ConnectionStatus.connected;
