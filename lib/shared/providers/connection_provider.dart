@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -60,6 +61,7 @@ class ConnectionNotifier extends Notifier<ConnectionStateData> {
   Timer? _reconnectTimer;
   Timer? _pingTimer;
   bool _explicitDisconnect = false;
+  RawDatagramSocket? _udpSocket;
 
   static const String _ipPrefKey = 'ykms_server_ip';
 
@@ -71,11 +73,13 @@ class ConnectionNotifier extends Notifier<ConnectionStateData> {
       _channelSubscription?.cancel();
       _connectivitySubscription?.cancel();
       _channel?.sink.close();
+      _udpSocket?.close();
     });
 
     Future.microtask(() {
       _loadSavedIp();
       _setupConnectivityMonitoring();
+      startUdpDiscovery();
     });
 
     return ConnectionStateData(status: ConnectionStatus.disconnected);
@@ -108,6 +112,7 @@ class ConnectionNotifier extends Notifier<ConnectionStateData> {
   }
 
   Future<bool> connect(String ip) async {
+    stopUdpDiscovery();
     _reconnectTimer?.cancel();
     _pingTimer?.cancel();
     _channelSubscription?.cancel();
@@ -165,6 +170,7 @@ class ConnectionNotifier extends Notifier<ConnectionStateData> {
     _pingTimer?.cancel();
     _channelSubscription?.cancel();
     await _channel?.sink.close();
+    stopUdpDiscovery();
     state = state.copyWith(status: ConnectionStatus.disconnected, clearError: true);
   }
 
@@ -230,8 +236,14 @@ class ConnectionNotifier extends Notifier<ConnectionStateData> {
           if (state.ipAddress != null) connect(state.ipAddress!);
         });
       }
+      if (!_explicitDisconnect) {
+        startUdpDiscovery();
+      }
     } else if (state.status == ConnectionStatus.connecting) {
       state = state.copyWith(status: ConnectionStatus.disconnected, error: message);
+      if (!_explicitDisconnect) {
+        startUdpDiscovery();
+      }
     }
   }
 
@@ -272,6 +284,50 @@ class ConnectionNotifier extends Notifier<ConnectionStateData> {
 
   void incrementInvoicesSent() {
     state = state.copyWith(invoicesSent: state.invoicesSent + 1);
+  }
+
+  void startUdpDiscovery() async {
+    if (_udpSocket != null) return;
+    try {
+      _udpSocket = await RawDatagramSocket.bind(
+        InternetAddress.anyIPv4,
+        8769,
+        reuseAddress: true,
+        reusePort: true,
+      );
+      _udpSocket!.listen((RawSocketEvent event) {
+        if (event == RawSocketEvent.read) {
+          final Datagram? dg = _udpSocket!.receive();
+          if (dg != null) {
+            try {
+              final String data = utf8.decode(dg.data);
+              final Map<String, dynamic> payload = jsonDecode(data);
+              if (payload['serverName'] == 'YKMS ERP' && payload['ip'] != null) {
+                final discoveredIp = payload['ip'] as String;
+                // Only auto-connect if we are currently disconnected
+                if (state.status == ConnectionStatus.disconnected) {
+                  debugPrint("[ConnectionProvider] Auto-discovered YKMS ERP server at: $discoveredIp");
+                  connect(discoveredIp);
+                }
+              }
+            } catch (e) {
+              // Ignore decode exceptions
+            }
+          }
+        }
+      });
+      debugPrint("[ConnectionProvider] Started UDP Discovery on port 8769");
+    } catch (e) {
+      debugPrint("[ConnectionProvider] Failed to start UDP Discovery: $e");
+    }
+  }
+
+  void stopUdpDiscovery() {
+    if (_udpSocket != null) {
+      _udpSocket!.close();
+      _udpSocket = null;
+      debugPrint("[ConnectionProvider] Stopped UDP Discovery");
+    }
   }
 }
 
